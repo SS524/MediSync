@@ -1,3 +1,4 @@
+using AuthService.Config;
 using AuthService.Data;
 using AuthService.Models;
 using Microsoft.AspNetCore.Identity;
@@ -13,6 +14,14 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddIdentity<ApplicationUser,IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
+
+builder.Services.AddIdentityServer()
+    .AddAspNetIdentity<ApplicationUser>()
+    .AddInMemoryClients(IdentityServerConfig.Clients)
+    .AddInMemoryApiScopes(IdentityServerConfig.ApiScopes)
+    .AddInMemoryIdentityResources(IdentityServerConfig.IdentityResources)
+    .AddDeveloperSigningCredential(); 
+
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -30,6 +39,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+
+app.UseIdentityServer();
 
 app.UseAuthentication();
 app.UseAuthorization();
