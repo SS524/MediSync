@@ -1,6 +1,10 @@
 using AuthService.Config;
 using AuthService.Data;
 using AuthService.Models;
+using AuthService.Seeders;
+using AuthService.Services;
+using AuthService.Services.External;
+using AuthService.Services.Interface;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,8 +24,19 @@ builder.Services.AddIdentityServer()
     .AddInMemoryClients(IdentityServerConfig.Clients)
     .AddInMemoryApiScopes(IdentityServerConfig.ApiScopes)
     .AddInMemoryIdentityResources(IdentityServerConfig.IdentityResources)
-    .AddDeveloperSigningCredential(); 
+    .AddDeveloperSigningCredential();
 
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<SuperAdminSeeder>();
+
+
+// Registering HttpClient for calling ClinicService
+var clinicServiceUrl = builder.Configuration["ServiceUrls:ClinicService"];
+
+builder.Services.AddHttpClient<IClinicServiceClient, ClinicServiceClient>(client =>
+{
+    client.BaseAddress = new Uri(clinicServiceUrl);
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -47,7 +62,17 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    await RoleSeeder.SeedRolesAsync(roleManager);
+}
 
+using (var scope = app.Services.CreateScope())
+{
+    var superAdminSeeder = scope.ServiceProvider.GetRequiredService<SuperAdminSeeder>();
+    await superAdminSeeder.SeedSuperAdminAsync();
+}
 
 app.Run();
 
